@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Criteria Evaluation Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        canvas { margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        th { background-color: #4CAF50; color: white; }
+    </style>
+</head>
+<body>
+    <h2>Criteria Evaluation Dashboard</h2>
+    <input type="file" id="fileInput" accept=".csv" />
+    <button onclick="uploadFile()">Upload & Process</button>
+    <h3>Evaluation Results</h3>
+    <table id="resultsTable">
+        <thead>
+            <tr>
+                <th>Site ID</th>
+                <th>Worker Safety Index (%)</th>
+                <th>Wage & Financial Stability Index (%)</th>
+                <th>Legal Compliance Score (%)</th>
+                <th>Living Conditions & Social Support Index (%)</th>
+                <th>Psychological & Social Well-Being Index (%)</th>
+                <th>Overall Score (%)</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    <canvas id="chart"></canvas>
+    <script>
+        function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            if (!file) {
+                alert("Please select a CSV file first.");
+                return;
+            }
+            if (!file.name.endsWith(".csv")) {
+                alert("Only CSV files are allowed.");
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const csvData = event.target.result;
+                Papa.parse(csvData, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: function(results) {
+                        processCSVData(results.data);
+                    }
+                });
+            };
+            reader.readAsText(file);
+        }
+        
+        function processCSVData(data) {
+            data.forEach(row => {
+                row.overall_score = ((parseFloat(row["Worker Safety Index (%)"]) + 
+                                      parseFloat(row["Wage & Financial Stability Index (%)"]) + 
+                                      parseFloat(row["Legal Compliance Score (%)"]) + 
+                                      parseFloat(row["Living Conditions & Social Support Index (%)"]) + 
+                                      parseFloat(row["Psychological & Social Well-Being Index (%)"])) / 5).toFixed(2);
+            });
+            updateTable(data);
+            generateChart(data);
+        }
+        
+        function updateTable(data) {
+            const tbody = document.querySelector("#resultsTable tbody");
+            tbody.innerHTML = "";
+            data.forEach(row => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `<td>${row["Site ID"]}</td>
+                               <td>${row["Worker Safety Index (%)"]}%</td>
+                               <td>${row["Wage & Financial Stability Index (%)"]}%</td>
+                               <td>${row["Legal Compliance Score (%)"]}%</td>
+                               <td>${row["Living Conditions & Social Support Index (%)"]}%</td>
+                               <td>${row["Psychological & Social Well-Being Index (%)"]}%</td>
+                               <td>${row.overall_score}%</td>`;
+                tbody.appendChild(tr);
+            });
+        }
+        
+        function generateChart(data) {
+            const ctx = document.getElementById('chart').getContext('2d');
+            const labels = data.map(row => row["Site ID"]);
+            const scores = data.map(row => parseFloat(row.overall_score));
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Overall Score (%)',
+                        data: scores,
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: { responsive: true }
+            });
+        }
+    </script>
+</body>
+</html>
